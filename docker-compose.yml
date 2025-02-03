@@ -4,29 +4,41 @@ services:
     image: bitnami/spark:latest
     container_name: spark-master
     ports:
-      - 4040:8080
-      - 7077:7077
+      - "8080:8080"  # Spark Web UI
+      - "7077:7077"  # Spark master port
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
       - SPARK_SSL_ENABLED=no
+      - SPARK_MASTER_OPTS="-Dspark.deploy.defaultCores=3"
     networks:
-      - mongodb_network
-    depends_on:
-      - mongodb
+      - spark_network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
 
-  spark-worker-a:
+  spark-worker-1:
     image: bitnami/spark:latest
-    container_name: spark-worker-a
+    container_name: spark-worker-1
     ports:
-      - 4041:8081
+      - "8081:8081"
+      - "17000:17000"
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=2g
-      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=6g
+      - SPARK_WORKER_CORES=3
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_WORKER_WEBUI_PORT=8081
+      - SPARK_WORKER_PORT=17000
+      # 수정된 Worker 옵션 설정
+      - SPARK_WORKER_CLEANUP_ENABLED=true
+      - SPARK_WORKER_CLEANUP_INTERVAL=1800
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
@@ -34,18 +46,30 @@ services:
     depends_on:
       - spark-master
     networks:
-      - mongodb_network
-
-  spark-worker-b:
+      - spark_network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 6G
+  spark-worker-2:
     image: bitnami/spark:latest
-    container_name: spark-worker-b
+    container_name: spark-worker-2
     ports:
-      - 4042:8081
+      - "8082:8081"
+      - "17001:17000"
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=2g
-      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=6g
+      - SPARK_WORKER_CORES=3
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_WORKER_WEBUI_PORT=8081
+      - SPARK_WORKER_PORT=17000
+      # 수정된 Worker 옵션 설정
+      - SPARK_WORKER_CLEANUP_ENABLED=true
+      - SPARK_WORKER_CLEANUP_INTERVAL=1800
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
@@ -53,18 +77,31 @@ services:
     depends_on:
       - spark-master
     networks:
-      - mongodb_network
+      - spark_network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 6G
 
-  spark-worker-c:
+  spark-worker-3:
     image: bitnami/spark:latest
-    container_name: spark-worker-c
+    container_name: spark-worker-3
     ports:
-      - 4043:8081
+      - "8083:8081"
+      - "17002:17000"
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
-      - SPARK_WORKER_MEMORY=2g
-      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=6g
+      - SPARK_WORKER_CORES=3
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_WORKER_WEBUI_PORT=8081
+      - SPARK_WORKER_PORT=17000
+      # 수정된 Worker 옵션 설정
+      - SPARK_WORKER_CLEANUP_ENABLED=true
+      - SPARK_WORKER_CLEANUP_INTERVAL=1800
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
       - SPARK_RPC_ENCRYPTION_ENABLED=no
       - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
@@ -72,20 +109,30 @@ services:
     depends_on:
       - spark-master
     networks:
-      - mongodb_network
+      - spark_network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 6G
 
   mongodb:
-    image: mongo
+    image: mongo:latest
     container_name: mongodb
     ports:
-      - 27017:27017
+      - "27017:27017"
     volumes:
-      - data:/data/db
+      - mongodb_data:/data/db
     environment:
       - MONGO_INITDB_ROOT_USERNAME=rootuser
       - MONGO_INITDB_ROOT_PASSWORD=rootpass
     networks:
-      - mongodb_network
+      - spark_network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
   python-app:
     image: session_2-python-app
@@ -103,11 +150,17 @@ services:
       - spark-master
       - mongodb
     networks:
-      - mongodb_network
+      - spark_network
+    deploy:
+      resources:
+        limits:
+          memory: 4G
 
 volumes:
-  data: {}
+  mongodb_data:
+    name: mongodb_data
 
 networks:
-  mongodb_network:
-    name: mongodb_network
+  spark_network:
+    name: spark_network
+    driver: bridge

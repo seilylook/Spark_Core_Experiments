@@ -1,4 +1,4 @@
-.PHONY: build start stop test clean init_mongo
+.PHONY: build start stop test clean init_mongo verify_spark
 
 # Image configuration
 IMAGE_NAME = session_2-python-app
@@ -58,7 +58,7 @@ test: build
 	docker run --rm -v $(PWD)/target:/app/target $(IMAGE_NAME):$(DEFAULT_TAG) /bin/bash -c \
 		'for test_file in $$(find tests -name "*.py" ! -name "__init__.py" ! -name "conftest.py"); do \
 			base_name=$$(basename $$test_file .py); \
-			pytest -v $$test_file --junitxml=target/$$base_name.xml; \
+			pytest $$test_file --junitxml=target/$$base_name.xml; \
 		done'
 	@echo "\n"
 
@@ -82,4 +82,14 @@ init_mongo:
 	@echo "====================================="
 	chmod +x ./scripts/init_mongo.sh
 	./scripts/init_mongo.sh
+	@echo "\n"
+
+# ============================
+# Verify the Spark Environment
+# ============================
+verify_spark:
+	@echo "=============================="
+	@echo "Verifying Spark cluster setup..."
+	@echo "=============================="
+	@docker exec spark-master spark-submit --version
 	@echo "\n"

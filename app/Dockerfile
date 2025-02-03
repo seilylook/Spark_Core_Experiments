@@ -35,3 +35,4 @@ COPY conf/ conf/
 
 # 초기화 및 Python 실행 명령어 설정
 CMD python -m src.main
+

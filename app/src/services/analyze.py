@@ -25,7 +25,7 @@ class DataAnalyzer:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def generate_sample_data(self, num_rows: int) -> DataFrame:
-        """샘플 데이터 생성"""
+        """샘플 데이터 생성 최적화"""
         try:
             schema = StructType(
                 [
@@ -36,11 +36,25 @@ class DataAnalyzer:
                 ]
             )
 
-            data = [
-                (i, i % 100, chr(65 + i % 4), float(i % 1000)) for i in range(num_rows)
-            ]
+            # 배치 크기로 데이터 생성
+            batch_size = 100000
+            data = []
+            for i in range(0, num_rows, batch_size):
+                end = min(i + batch_size, num_rows)
+                batch = [
+                    (j, j % 100, chr(65 + j % 4), float(j % 1000))
+                    for j in range(i, end)
+                ]
+                data.extend(batch)
 
-            return self.spark.createDataFrame(data, schema)
+                if len(data) >= batch_size:
+                    df = self.spark.createDataFrame(data, schema)
+                    data = []
+
+            if data:
+                df = self.spark.createDataFrame(data, schema)
+
+            return df.repartition(10)  # 적절한 파티션 수로 재분할
 
         except Exception as e:
             raise DataProcessingError(f"샘플 데이터 생성 실패: {str(e)}")
@@ -65,7 +79,7 @@ class DataAnalyzer:
 
             execution_time = (datetime.now() - start_time).total_seconds()
 
-            self.logger.info(f"\n=== {description} 분석 결과 ===")
+            self.logger.info(f"=== {description} 분석 결과 ===")
             self.logger.info(f"처리 시간: {execution_time:.2f}초")
             self.logger.info("\n기본 통계:")
             stats.show()

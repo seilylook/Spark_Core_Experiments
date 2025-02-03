@@ -41,8 +41,12 @@ class TestSparkSessionManager:
     def test_config_application(self, mock_spark_session, spark_config):
         with SparkSessionManager(spark_config) as session:
             configs = spark_config.get_configs()
+            # shuffle 파티션 설정 확인
             assert configs["spark.sql.shuffle.partitions"] == "10"
-            assert configs["spark.log.level"] == "WARN"
+            # 로그 레벨 설정 확인 (Java 옵션으로 설정됨)
+            assert (
+                "-Dlog4j.rootCategory=WARN" in configs["spark.driver.extraJavaOptions"]
+            )
 
     def test_session_creation_failure(self, spark_config):
         with patch(
